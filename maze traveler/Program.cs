@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+
 
 internal class Program
 {
@@ -14,42 +16,96 @@ internal class Program
 
     static bool[,] Prims(int sideLength)
     {
-        int length = sideLength * 2 + 2;
+        int length = sideLength * 2 + 1;
         bool[,] maze = new bool[length, length];
 
-        Dictionary<int[], List<int[]>> cellWalls = new Dictionary<int[], List<int[]>>(); // dict cell corrds : walls [U, R, L, D]
-        List<int[]> frontier = new List<int[]>(); // all walls on the maze perimeter
+        // Fill everything with walls first
+        for (int y = 0; y < length; y++)
+            for (int x = 0; x < length; x++)
+                maze[y, x] = true;
 
-        for (int y = 0; y < length - 1; y++)
+        // Frontier set
+        HashSet<Tuple<int, int>> frontier = new HashSet<Tuple<int, int>>();
+
+        // Helper: check bounds
+        Func<Tuple<int, int>, bool> InBounds = c =>
+            c.Item1 > 0 && c.Item1 < length - 1 &&
+            c.Item2 > 0 && c.Item2 < length - 1;
+
+        // Helper: get neighbors two steps away
+        Func<Tuple<int, int>, List<Tuple<int, int>>> Neighbors = c =>
         {
-            for (int x = 0; x < length - 1; x++)
+            var result = new List<Tuple<int, int>>();
+            int y = c.Item1, x = c.Item2;
+            var dirs = new Tuple<int, int>[] {
+                Tuple.Create(-2, 0),
+                Tuple.Create(2, 0),
+                Tuple.Create(0, -2),
+                Tuple.Create(0, 2)
+            };
+
+            foreach (var d in dirs)
             {
-                maze[y, x] = !(y % 2 != 0 && x % 2 != 0);
-                if (!maze[y, x])
-                {
-                    List<int[]> currentCellWalls = new List<int[]>();
-
-                    // do not add side walls (saves a check)
-                    if (y - 1 > 0) currentCellWalls.Add(new int[] { y - 1, x });
-                    if (x - 1 > 0) currentCellWalls.Add(new int[] { y, x - 1 });
-                    if (y + 1 < length) currentCellWalls.Add(new int[] { y + 1, x });
-                    if (x + 1 < length) currentCellWalls.Add(new int[] { y, x + 1 });
-
-                    cellWalls.Add(new int[]{y, x}, currentCellWalls);
-                }
-                Console.Write(maze[y, x] ? "█" : " ");
+                var n = Tuple.Create(y + d.Item1, x + d.Item2);
+                if (InBounds(n))
+                    result.Add(n);
             }
+            return result;
+        };
+
+        // choose a random starting cell
+        var start = Tuple.Create(
+            (rand.Next(0, sideLength)) * 2 + 1,
+            (rand.Next(0, sideLength)) * 2 + 1
+        );
+
+        maze[start.Item1, start.Item2] = false;
+
+        // add its neighbors to the frontier
+        foreach (var n in Neighbors(start))
+            frontier.Add(n);
+
+        while (frontier.Count > 0)
+        {
+            // pick a random frontier cell
+            var frontierCell = frontier.ElementAt(rand.Next(frontier.Count));
+
+            // find neighbors already in the maze
+            var neighs = Neighbors(frontierCell)
+                .Where(n => !maze[n.Item1, n.Item2])
+                .ToList();
+
+            if (neighs.Count > 0)
+            {
+                var connected = neighs[rand.Next(neighs.Count)];
+
+                // carve passage between frontierCell and connected
+                int wy = (frontierCell.Item1 + connected.Item1) / 2;
+                int wx = (frontierCell.Item2 + connected.Item2) / 2;
+                maze[frontierCell.Item1, frontierCell.Item2] = false;
+                maze[wy, wx] = false;
+            }
+
+            // mark this cell as part of the maze
+            maze[frontierCell.Item1, frontierCell.Item2] = false;
+            frontier.Remove(frontierCell);
+
+            // add untouched neighbors to frontier
+            foreach (var n in Neighbors(frontierCell))
+            {
+                if (maze[n.Item1, n.Item2]) // still a wall
+                    frontier.Add(n);
+            }
+        }
+
+        // draw
+        for (int y = 0; y < length; y++)
+        {
+            for (int x = 0; x < length; x++)
+                Console.Write(maze[y, x] ? "█" : " ");
             Console.WriteLine();
         }
 
-        // choose random start point
-        int[] startCoords = new int[] {(rand.Next(0, sideLength - 1) + 1) * 2, (rand.Next(0, sideLength - 1) + 1) * 2};
-
-        Console.SetCursorPosition(startCoords[0] - 1, startCoords[1] - 1);
-        Console.Write("*");
-
-        foreach (int[] wall in cellWalls[startCoords]) frontier.Add(wall);
-
-        return new bool[,] { }; //shut up compiler
+        return maze;
     }
 }
