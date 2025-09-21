@@ -1,17 +1,95 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 
 
 internal class Program
 {
-    static Random rand = new Random();
+    static Random rand = new Random(1);
+    static int direction = 3;
 
     private static void Main(string[] args)
     {
         Console.Clear();
-        Prims(10);
-        Console.SetCursorPosition(0, 22);
+        Console.OutputEncoding = Encoding.UTF8;
+        bool[,] maze = Prims(10);
+        bool[,] view = GetView(maze, 1, 1, direction);
+
+        System.Console.WriteLine();
+
+        int h = view.GetLength(0);
+        int w = view.GetLength(1);
+
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++)
+            {
+                Console.Write(view[y, x] ? "█" : " ");
+            }
+            Console.WriteLine();
+        }
+    }
+
+    static bool[,] GetView(bool[,] source, int pivotY, int pivotX, int direction)
+    {
+        int srcH = source.GetLength(0);
+        int srcW = source.GetLength(1);
+
+        int viewH = 5;
+        int viewW = 3;
+
+        bool[,] result = new bool[viewH, viewW];
+
+        // Offsets for NORTH orientation, relative to pivot at bottom-center
+        // dy: -4..0 (up 4 to pivot), dx: -1..1
+        int[,] offsets = new int[,]
+        {
+            {-4, -1}, {-4, 0}, {-4, 1},
+            {-3, -1}, {-3, 0}, {-3, 1},
+            {-2, -1}, {-2, 0}, {-2, 1},
+            {-1, -1}, {-1, 0}, {-1, 1},
+            { 0, -1}, { 0, 0}, { 0, 1},
+        };
+
+        for (int i = 0; i < offsets.GetLength(0); i++)
+        {
+            int dy = offsets[i, 0];
+            int dx = offsets[i, 1];
+
+            // Rotate offsets
+            int rdy = dy, rdx = dx;
+            switch (direction % 4)
+            {
+                case 0: // North
+                    rdy = dy; rdx = dx;
+                    break;
+                case 1: // East
+                    rdy = -dx; rdx = dy;
+                    break;
+                case 2: // South
+                    rdy = -dy; rdx = -dx;
+                    break;
+                case 3: // West
+                    rdy = dx; rdx = -dy;
+                    break;
+            }
+
+            int sy = pivotY + rdy;
+            int sx = pivotX + rdx;
+
+            // Map offsets into result coordinates (0..4, 0..2)
+            int ry = dy + 4; // shift -4..0 to 0..4
+            int rx = dx + 1; // shift -1..1 to 0..2
+
+            if (sy >= 0 && sy < srcH && sx >= 0 && sx < srcW)
+                result[ry, rx] = source[sy, sx];
+            else
+                result[ry, rx] = false; // OOB is empty
+        }
+
+        return result;
     }
 
     static bool[,] Prims(int sideLength)
