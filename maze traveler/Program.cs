@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -7,29 +8,189 @@ using System.Text;
 
 internal class Program
 {
-    static Random rand = new Random(1);
+    static readonly Random rand = new Random(1);
     static int direction = 3;
+    static int playerX = 1;
+    static int playerY = 1;
 
     private static void Main(string[] args)
     {
         Console.Clear();
+        Console.BufferHeight = 500;
         Console.OutputEncoding = Encoding.UTF8;
-        bool[,] maze = Prims(10);
-        bool[,] view = GetView(maze, 1, 1, direction);
 
-        System.Console.WriteLine();
+        Draw(new bool[,] {
+            {true, false, true},
+            {true, false, false},
+            {false, false, true},
+            {true, false, false},
+            {false, false, true},
+        });
 
-        int h = view.GetLength(0);
-        int w = view.GetLength(1);
+        Console.Clear();
 
-        for (int y = 0; y < h; y++)
+        Draw(new bool[,] {
+            {true, false, true},
+            {true, false, false},
+            {false, false, true},
+            {true, true, false},
+            {true, false, true},
+        });
+    }
+
+    static void Draw(bool[,] view)
+    {
+        const int height = 41;
+        const int width = 48;
+
+        string[] playerSlices = new string[]{
+            " ╱▔▔▔▔▔▔▔▔▔╲ ",
+            "▕▔▔▔▔▔▔▔▔▔▔▔▏",
+            "▕           ▏",
+            "▕           ▏",
+            "▕           ▏",
+            "▕           ▏",
+            "▕           ▏",
+            "▕           ▏",
+            "▕           ▏",
+            "▕           ▏",
+            " ▔▔▔▔▔▔▔▔▔▔▔ "
+        };
+
+        int[] cellWidths = new int[]{
+            47, 35, 27, 21, 17
+        };
+
+        int[] cellHeights = new int[]{
+            40, 28, 20, 14, 10
+        };
+
+        int[] cellDepths = new int[]{
+            1, 6, 10, 13, 15
+        };
+
+        int[] cellCornerLineLengths = new int[]{
+            6, 5, 4, 3
+        };
+
+        Console.SetCursorPosition(0, 0);
+        Console.Write(" " + new string('_', cellWidths[0]));
+
+        int depth = 0;
+        int drawX = 1;
+        int drawY = 1;
+        
+        char PickChar(bool hasLine, bool isTransition, char lineChar, char transitionChar)
         {
-            for (int x = 0; x < w; x++)
-            {
-                Console.Write(view[y, x] ? "█" : " ");
-            }
-            Console.WriteLine();
+            if (hasLine) return lineChar;
+            if (isTransition) return transitionChar;
+            return ' ';
         }
+
+        //draw in diagonals and horizontals
+        for (int i = 1; i <= 15; i++)
+        {
+            bool hasWestLine = view[4 - depth, 0];
+            bool hasEastLine = view[4 - depth, 2];
+            bool isCellTransition = i == cellDepths[depth + 1];
+
+            Console.SetCursorPosition(drawX, height - drawY);
+            Console.Write(PickChar(hasWestLine, isCellTransition, '╱', '▔'));
+
+            Console.SetCursorPosition(width - drawX, height - drawY);
+            Console.Write(PickChar(hasEastLine, isCellTransition, '╲', '▔'));
+
+            Console.SetCursorPosition(width - drawX, drawY);
+            Console.Write(PickChar(hasEastLine, isCellTransition, '╱', '_'));
+
+            Console.SetCursorPosition(drawX, drawY);
+            Console.Write(PickChar(hasWestLine, isCellTransition, '╲', '_'));
+
+            if (isCellTransition)
+            {
+                string bottomLine = new string('_', cellCornerLineLengths[depth] - 1);
+                string topLine = new string('▔', cellCornerLineLengths[depth] - 1);
+
+                if (!hasWestLine)
+                {
+
+                    Console.CursorLeft = cellDepths[depth];
+                    Console.Write(bottomLine);
+                }
+                if (!hasEastLine)
+                {
+                    Console.CursorLeft = width + 1 - cellDepths[depth + 1];
+                    Console.Write(bottomLine);
+                }
+                Console.CursorTop += cellHeights[depth + 1] + 1;
+                if (!hasWestLine)
+                {
+                    Console.CursorLeft = cellDepths[depth];
+                    Console.Write(topLine);
+                }
+                if (!hasEastLine)
+                {
+                    Console.CursorLeft = width + 1 - cellDepths[depth + 1];
+                    Console.Write(topLine);
+                }
+                
+
+                depth++;
+                bool drawWall = view[4 - depth, 1];
+
+                Console.SetCursorPosition(drawX + 1, drawY);
+                Console.Write(new string(drawWall ? '_' : ' ', cellWidths[depth]));
+
+                Console.SetCursorPosition(drawX + 1, height - drawY);
+                Console.Write(new string(drawWall ? '▔' : ' ', cellWidths[depth]));
+
+                if (drawWall) break;
+            }
+
+            drawX++;
+            drawY++;
+        }
+
+        bool vertStopFlag = false;
+        // draw in verticals
+        for (int i = 0; i < 5; i++)
+        {
+            depth = 4 - i;
+
+            int cellDepth = cellDepths[i] + ((i == 0) ? 0 : 1);
+
+            Console.SetCursorPosition(cellDepth - 1, cellDepth);
+
+            for (int j = 0; j < cellHeights[i]; j++)
+            {
+                Console.Write("▕");
+                Console.CursorLeft--;
+                Console.CursorTop++;
+            }
+
+            Console.SetCursorPosition(width - cellDepth + 1, cellDepth);
+
+            for (int j = 0; j < cellHeights[i]; j++)
+            {
+                Console.Write("▏");
+                Console.CursorLeft--;
+                Console.CursorTop++;
+            }
+            if (vertStopFlag) break;
+            if (depth - 1 >= 0 && view[depth - 1, 1]) vertStopFlag = true;
+        }
+
+        Console.SetCursorPosition(18, 29);
+        foreach (string slice in playerSlices)
+        {
+            Console.Write(slice);
+            Console.CursorLeft = 18;
+            Console.CursorTop++;
+        }
+
+
+        Console.SetCursorPosition(0, height);
+        Console.WriteLine(" " + new string('▔', cellWidths[0]));
     }
 
     static bool[,] GetView(bool[,] source, int pivotY, int pivotX, int direction)
@@ -177,12 +338,12 @@ internal class Program
         }
 
         // draw
-        for (int y = 0; y < length; y++)
-        {
-            for (int x = 0; x < length; x++)
-                Console.Write(maze[y, x] ? "█" : " ");
-            Console.WriteLine();
-        }
+        // for (int y = 0; y < length; y++)
+        // {
+        //     for (int x = 0; x < length; x++)
+        //         Console.Write(maze[y, x] ? "█" : " ");
+        //     Console.WriteLine();
+        // }
 
         return maze;
     }
