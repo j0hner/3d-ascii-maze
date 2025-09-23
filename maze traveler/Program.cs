@@ -1,41 +1,87 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.Design;
-using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 
 internal class Program
 {
     static readonly Random rand = new Random(1);
-    static int direction = 3;
+    const bool debug = false;
+    static int direction = 3; // 0=N, 1=E, 2=S, 3=W
     static int playerX = 1;
     static int playerY = 1;
 
     private static void Main(string[] args)
     {
         Console.Clear();
-        Console.BufferHeight = 500;
+        Console.CursorVisible = false;
         Console.OutputEncoding = Encoding.UTF8;
 
-        Draw(new bool[,] {
-            {true, false, true},
-            {true, false, false},
-            {false, false, true},
-            {true, false, false},
-            {false, false, true},
-        });
+        bool[,] maze = Prims(10);
 
-        Console.Clear();
+        bool[,] view = GetView(maze, playerX, playerY, direction);
+        Draw(view);
 
-        Draw(new bool[,] {
-            {true, false, true},
-            {true, false, false},
-            {false, false, true},
-            {true, true, false},
-            {true, false, true},
-        });
+        while (true)
+        {
+            Console.CursorLeft = 0;
+            Console.Write($"Enter action (W to move, QE to turn): ");
+            ConsoleKeyInfo key;
+            do
+            {
+                Console.Write(' ');
+                Console.CursorLeft--;
+                key = Console.ReadKey(false); //show the key pressed
+                Thread.Sleep(100);
+                Console.CursorLeft--;
+            } while (
+                key.Key != ConsoleKey.W &&
+                key.Key != ConsoleKey.Q &&
+                key.Key != ConsoleKey.E
+            );
+
+            while (Console.KeyAvailable) // consume ironeous key presses
+                Console.ReadKey(true);
+
+            switch (key.Key)
+            {
+                case ConsoleKey.Q:
+                    direction = (direction + 1) % 4;
+                    break;
+                case ConsoleKey.E:
+                    direction = (direction + 3) % 4; // equivalent to -1 mod 4, avoids negatives
+                    break;
+                case ConsoleKey.W:
+                    if (!Move(view)) continue;
+                    break;
+            }
+            Console.Clear();
+            view = GetView(maze, playerY, playerX, direction);
+            Draw(view);
+        }
+    }
+
+    static bool Move(bool[,] view)
+    {
+        if (view[3, 1]) return false; // wall in front
+        switch (direction)
+        {
+            case 0: // North
+                playerY -= 1;
+                break;
+            case 1: // East
+                playerX -= 1;
+                break;
+            case 2: // South
+                playerY += 1;
+                break;
+            case 3: // West
+                playerX += 1;
+                break;
+        }
+        return true;
     }
 
     static void Draw(bool[,] view)
@@ -76,10 +122,23 @@ internal class Program
         Console.SetCursorPosition(0, 0);
         Console.Write(" " + new string('_', cellWidths[0]));
 
+        if (debug)
+        {
+            Console.WriteLine($"\rFacing: {(new string[] { "NORTH", "EAST", "SOUTH", "WEST" })[direction]} ({direction}), Pos: ({playerX},{playerY})");
+            for (int y = 0; y < view.GetLength(0); y++)
+            {
+                Console.CursorLeft = width + 1;
+                for (int x = 0; x < view.GetLength(1); x++)
+                    Console.Write(view[y, x] ? "█" : " ");
+                Console.WriteLine();
+            }
+            Console.SetCursorPosition(0, 0);
+        }
+
         int depth = 0;
         int drawX = 1;
         int drawY = 1;
-        
+
         char PickChar(bool hasLine, bool isTransition, char lineChar, char transitionChar)
         {
             if (hasLine) return lineChar;
@@ -133,7 +192,7 @@ internal class Program
                     Console.CursorLeft = width + 1 - cellDepths[depth + 1];
                     Console.Write(topLine);
                 }
-                
+
 
                 depth++;
                 bool drawWall = view[4 - depth, 1];
@@ -247,7 +306,7 @@ internal class Program
             if (sy >= 0 && sy < srcH && sx >= 0 && sx < srcW)
                 result[ry, rx] = source[sy, sx];
             else
-                result[ry, rx] = false; // OOB is empty
+                result[ry, rx] = true; // OOB is wall
         }
 
         return result;
