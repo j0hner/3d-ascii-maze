@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "maze traveler", "maze traveler\maze traveler.csproj", "{098806E8-DFA6-4FDA-81FE-23C0AC33B2D9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "maze_traveler", "maze_traveler\maze_traveler.csproj", "{098806E8-DFA6-4FDA-81FE-23C0AC33B2D9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

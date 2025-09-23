@@ -8,7 +8,7 @@ using System.Threading;
 internal class Program
 {
     static readonly Random rand = new Random(1);
-    const bool debug = false;
+    const bool debug = true;
     static int direction = 3; // 0=N, 1=E, 2=S, 3=W
     static int playerX = 1;
     static int playerY = 1;
@@ -16,6 +16,7 @@ internal class Program
     private static void Main(string[] args)
     {
         Console.Clear();
+        Console.SetBufferSize(500, 500);
         Console.CursorVisible = false;
         Console.OutputEncoding = Encoding.UTF8;
 
@@ -59,7 +60,7 @@ internal class Program
             }
             Console.Clear();
             view = GetView(maze, playerY, playerX, direction);
-            Draw(view);
+            Draw(view, maze);
         }
     }
 
@@ -84,7 +85,7 @@ internal class Program
         return true;
     }
 
-    static void Draw(bool[,] view)
+    static void Draw(bool[,] view, bool[,] maze = null)
     {
         const int height = 41;
         const int width = 48;
@@ -129,8 +130,24 @@ internal class Program
             {
                 Console.CursorLeft = width + 1;
                 for (int x = 0; x < view.GetLength(1); x++)
-                    Console.Write(view[y, x] ? "█" : " ");
+                    Console.Write(view[y, x] ? "█" : (x == 1 && y == 4) ? "↑":" ");
+                    
                 Console.WriteLine();
+            }
+
+            if (maze != null)
+            {
+                Console.WriteLine();
+                for (int y = 0; y < maze.GetLength(0); y++)
+                {
+                    Console.CursorLeft = width + 1;
+                    for (int x = 0; x < maze.GetLength(1); x++)
+                        if (y == playerY && x == playerX)
+                            Console.Write(new string[] { "↑", "←", "↓", "→" }[direction]);
+                        else
+                            Console.Write(maze[y, x] ? "█" : " ");
+                    Console.WriteLine();
+                }
             }
             Console.SetCursorPosition(0, 0);
         }
@@ -172,7 +189,6 @@ internal class Program
 
                 if (!hasWestLine)
                 {
-
                     Console.CursorLeft = cellDepths[depth];
                     Console.Write(bottomLine);
                 }
@@ -235,8 +251,10 @@ internal class Program
                 Console.CursorLeft--;
                 Console.CursorTop++;
             }
-            if (vertStopFlag) break;
-            if (depth - 1 >= 0 && view[depth - 1, 1]) vertStopFlag = true;
+            if (vertStopFlag)
+                break;
+            if (depth - 1 >= 0 && view[depth - 1, 1])
+                vertStopFlag = true;
         }
 
         Console.SetCursorPosition(18, 29);
@@ -306,7 +324,7 @@ internal class Program
             if (sy >= 0 && sy < srcH && sx >= 0 && sx < srcW)
                 result[ry, rx] = source[sy, sx];
             else
-                result[ry, rx] = true; // OOB is wall
+                result[ry, rx] = false; // OOB is empty
         }
 
         return result;
@@ -395,14 +413,6 @@ internal class Program
                     frontier.Add(n);
             }
         }
-
-        // draw
-        // for (int y = 0; y < length; y++)
-        // {
-        //     for (int x = 0; x < length; x++)
-        //         Console.Write(maze[y, x] ? "█" : " ");
-        //     Console.WriteLine();
-        // }
 
         return maze;
     }
