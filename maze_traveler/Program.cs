@@ -16,7 +16,6 @@ internal class Program
     private static void Main(string[] args)
     {
         Console.Clear();
-        Console.SetBufferSize(500, 500);
         Console.CursorVisible = false;
         Console.OutputEncoding = Encoding.UTF8;
 
