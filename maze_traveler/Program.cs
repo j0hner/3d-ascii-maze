@@ -7,7 +7,7 @@ using System.Threading;
 
 internal class Program
 {
-    static readonly Random rand = new Random(1);
+    static readonly Random rand = new Random();
     const bool debug = false;
     static int direction = 3; // 0=N, 1=E, 2=S, 3=W
     static int playerX = 1;
